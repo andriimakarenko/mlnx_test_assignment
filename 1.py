@@ -42,7 +42,7 @@ def createAndFill(x, y, z):
 def createFileViaDD(size, dest, nbr):
 	command = f"dd if=/dev/zero of={dest}{str(nbr)}.dat count={str(size)} bs=1024"
 	# Comment out next line to go out of debug mode
-	commant = "sleep 10"
+	command = "sleep 10"
 	print(command)
 	p1 = subprocess.run(command, capture_output=True, shell=True)
 	# while p1.poll() is None:
