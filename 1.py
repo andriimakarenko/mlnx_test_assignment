@@ -4,6 +4,9 @@ from os import *
 import subprocess
 
 def createAndFill(x, y, z):
+	if z * y > x:
+		raise(Exception("Invalid parameters. Z times Y must be less than X"))
+
 	p1 = subprocess.run(['df', '-l', '-BM'], capture_output=True, text=True)
 	if p1.returncode != 0:
 		raise(Exception("Couldn't complete 'df -l -BM'"))
@@ -26,7 +29,7 @@ def createAndFill(x, y, z):
 	if goodMntPoint == "":
 		raise(Exception("Could not find a disk with enough free space"))
 
-	
+
 
 # x = input("Please specify X: ")
 # y = input("Please specify Y: ")
