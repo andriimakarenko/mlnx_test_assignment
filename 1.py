@@ -29,11 +29,28 @@ def createAndFill(x, y, z):
 	if goodMntPoint == "":
 		raise(Exception("Could not find a disk with enough free space"))
 
+# This should be a function but the deadline is TIGHT
+x = y = z = None
+while type(x) is not int:
+	try:
+		x = input("Please specify X (numbers only): ")
+		x = int(x)
+	except ValueError:
+		continue
 
+while type(y) is not int:
+	try:
+		y = input("Please specify X (numbers only): ")
+		y = int(y)
+	except ValueError:
+		continue
 
-# x = input("Please specify X: ")
-# y = input("Please specify Y: ")
-# z = input("Please specify Z: ")
+while type(z) is not int:
+	try:
+		z = input("Please specify X (numbers only): ")
+		z = int(z)
+	except ValueError:
+		continue
 
 try:
 	# createAndFill(x, y, z)
