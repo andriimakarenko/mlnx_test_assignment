@@ -2,7 +2,11 @@
 
 from os import *
 import subprocess
+from multiprocessing import Process
+from functools import wraps
+from time import time
 
+# I would separate this in multiple functions if it wasn't for the deadline
 def createAndFill(x, y, z):
 	if z * y > x:
 		raise(Exception("Invalid parameters. Z times Y must be less than X"))
@@ -29,6 +33,18 @@ def createAndFill(x, y, z):
 	if goodMntPoint == "":
 		raise(Exception("Could not find a disk with enough free space"))
 
+	while z > 0:
+		p = Process(target=createFileViaDD, args=(y, goodMntPoint, z))
+		p.start()
+		z -= 1
+
+def createFileViaDD(size, dest, nbr):
+	command = 'dd if=/dev/zero of=' + dest + str(nbr) + '.dat count=' + str(size) + ' bs=1024'
+	print(command)
+	p1 = subprocess.run(command, capture_output=True, shell=True)
+	# while p1.poll() is None:
+	# 	continue
+
 # This should be a function but the deadline is TIGHT
 x = y = z = None
 while type(x) is not int:
@@ -40,20 +56,19 @@ while type(x) is not int:
 
 while type(y) is not int:
 	try:
-		y = input("Please specify X (numbers only): ")
+		y = input("Please specify Y (numbers only): ")
 		y = int(y)
 	except ValueError:
 		continue
 
 while type(z) is not int:
 	try:
-		z = input("Please specify X (numbers only): ")
+		z = input("Please specify Z (numbers only): ")
 		z = int(z)
 	except ValueError:
 		continue
 
 try:
-	# createAndFill(x, y, z)
-	createAndFill(5, 5, 5)
+	createAndFill(x, y, z)
 except Exception as e:
 	print("Couldn't complete the task: ", e)
