@@ -7,8 +7,16 @@ import argparse
 import time
 from exceptions import *
 
+def stopwatch(func):
+	def inner(x, y, z):
+		startTime = time.perf_counter()
+		func(x, y, z)
+		endTime = time.perf_counter()
+		print(f'The entire process took {round(endTime - startTime, 2)} second(s).')
+	return inner
+
+@stopwatch
 def createAndFill(x, y, z):
-	startTime = time.perf_counter()
 
 	if z * y > x:
 		raise(DangerousArgsCombinationException)
@@ -27,14 +35,11 @@ def createAndFill(x, y, z):
 	for process in processes:
 		process.join()
 
-	endTime = time.perf_counter()
-	print(f'The entire process took {round(endTime - startTime, 2)} second(s).')
-
 
 def createFileViaDD(size, dest, nbr):
 	command = ['dd', 'if=/dev/zero', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
 	# Uncomment next line for debug mode
-	# command = ['sleep', '10']
+	command = ['sleep', '10']
 	p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	p1.wait()
 
