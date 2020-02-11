@@ -3,6 +3,8 @@
 from os import *
 import subprocess
 from multiprocessing import Process, Pool
+from pexpect import pxssh
+import pty
 import argparse
 import getpass
 import traceback
@@ -78,6 +80,82 @@ class Job:
 
 			self.servers.append(server)
 
+	def run(self):
+		with Pool(processes=len(self.servers)) as pool:
+			for n in range(len(self.servers)):
+				# print(f'In server #{n}')
+				if self.servers[n]['password']:
+					result = pool.apply_async(self.execOverSSHPass, (n,))
+				else:
+					result = pool.apply_async(self.execOverSSHKey, (n,))
+				# print(result.get(timeout=20))
+			pool.close()
+			pool.join()
+
+	# def execOverSSHPass(self, serverNumber):
+	# 	server = self.servers[serverNumber]
+
+	# 	connection = pxssh.pxssh()
+	# 	try:
+	# 		if not connection.login(server=server['host'], username=server['login'], password=server['password'], port=server['port']):
+	# 			print("SSH session failed on login.")
+	# 			print(str(connection))
+	# 		else:
+	# 			print("SSH session login successful")
+	# 			connection.sendline(server['command'])
+	# 			connection.prompt()
+	# 			print(connection.before)
+	# 			connection.logout()
+	# 	except Exception as e:
+	# 		print(e)
+
+	# def execOverSSHPass(self, serverNumber):
+	# 	server = self.servers[serverNumber]
+
+	# 	command = [
+	# 			'ssh', '-t',
+	# 			f'{server["login"]}:{server["password"]}@{server["host"]}:{server["port"]}',
+	# 			'-o', 'NumberOfPasswordPrompts=1',
+	# 			self.command
+	# 	]
+	# 	pid, child_fd = pty.fork()
+	# 	print(command)
+	# 	if not pid:
+	# 		execv(command[0], command)
+
+	# 	while True:
+	# 		try:
+	# 			output = read(child_fd, 1024).strip()
+	# 		except:
+	# 			print('Output reading fail')
+	# 			break
+	# 		lower = output.lower()
+	# 		# Write the password
+	# 		if b'password:' in lower:
+	# 			write(child_fd, server['password'] + b'\n')
+	# 			break
+	# 		elif b'are you sure you want to continue connecting' in lower:
+	# 			# Adding key to known_hosts
+	# 			write(child_fd, b'yes\n')
+	# 		else:
+	# 			print('Error:', output.decode())
+
+	# 	output = []
+	# 	while True:
+	# 		try:
+	# 			output.append(read(child_fd, 1024).strip())
+	# 		except:
+	# 			break
+
+	# 	waitpid(pid)
+	# 	print(''.join(output))
+
+	def execOverSSHPass(self, serverNumber):
+		print('Servers with login-password authentication are not yet supported')
+
+	def execOverSSHKey(self, serverNumber):
+		print("in there")
+
 ###################################################################################################################################
 
 if __name__ == '__main__':
@@ -110,7 +188,15 @@ if __name__ == '__main__':
 		if args.logpass:
 			job.setDefaultCredentials(args.logpass)
 		job.setServers(args.servers)
-		print(job)
+		# print(job)
+	except Exception as e:
+		if args.debug:
+			traceback.print_exc()
+		else:
+			print('Could not set up the job. Here\'s why:', e)
+
+	try:
+		job.run()
 	except Exception as e:
 		if args.debug:
 			traceback.print_exc()
