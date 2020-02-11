@@ -19,7 +19,7 @@ class Job:
 		# print(f'Default username set to {self.defaultUsername}')
 
 	def __str__(self):
-		result = f'Command: {self.command}\nServers:\n'
+		result = f'Command: {self.command}\n\nServers:\n'
 		for idx, server in enumerate(self.servers):
 			serverStr = f'\nServer #{idx}:\nLogin: {server["login"]}\n'
 			if server["password"]:
@@ -35,7 +35,7 @@ class Job:
 		credentials = logpassStr.split(':')
 		self.defaultUsername = credentials[0]
 		if len(credentials) == 2:
-			defaultPassword = credentials[1]
+			self.defaultPassword = credentials[1]
 		if len(credentials) > 2:
 			raise(InvalidCredentialsFormatException)
 
@@ -98,6 +98,10 @@ if __name__ == '__main__':
 							'the specified username (with or without password) to the servers where none was specified before. '
 							'Designed to use if some or all of your server accounts share the same username. '
 							'Examples: --username=admin:password, --username=johndoe '))
+	parser.add_argument('-d', '--debug',
+						type=bool, nargs='?', metavar='',
+						const=True, default=False,
+						help='Run the script in debug mode (verbose fails, stacktraces on)')
 	args = parser.parse_args()
 
 	job = Job()
@@ -108,7 +112,7 @@ if __name__ == '__main__':
 		job.setServers(args.servers)
 		print(job)
 	except Exception as e:
-		# Comment out next line to debug:
-		print('Could not set up the job. Here\'s why:', e)
-		# Uncomment next line to debug:
-		# traceback.print_exc()
+		if args.debug:
+			traceback.print_exc()
+		else:
+			print('Could not set up the job. Here\'s why:', e)

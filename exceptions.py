@@ -1,3 +1,10 @@
+
+###############################
+#                             #
+# Exceptions for assignment 1 #
+#                             #
+###############################
+
 class DangerousArgsCombinationException(Exception):
 	def __init__(self):
 		self.message = """
@@ -23,5 +30,34 @@ class CommandExecutionException(Exception):
 		'Verify that you have enough rights for it and that your OS is POSIX-compliant (i.e. not Windows)\n'
 		'The error that the command failed with, was:\n'
 		f'{stderr}')
+	def __str__(self):
+		return self.message
+
+###############################
+#                             #
+# Exceptions for assignment 2 #
+#                             #
+###############################
+
+class InvalidCredentialsFormatException(Exception):
+	def __init__(self):
+		self.message = """
+The specified credentials are in an invalid format. Valid formats are:
+1. -u USERNAME
+2. -u USERNAME:PASSWORD"""
+	def __str__(self):
+		return self.message
+
+class InvalidServerFormatException(Exception):
+	def __init__(self):
+		self.message = """
+At least one of the servers is specified in an invalid format. The correct format is:
+USERNAME:PASSWORD@HOST:PORT
+That means there can be at most one '@' and at most one colon (':') to each side of it.
+USERNAME: Optional. If not specified, user from -u / --login key is used. If that key isn't set, defaults to your username
+PASSWORD: Optional. If omitted, public key based authentication is assumed. Cannot be specified without the USERNAME, as
+	if the part to the left from '@' has no delimiters, it will be treated as a USERNAME
+HOST: Obligatory. If there are no delimiters in the server target, everything provided will be treated as a HOST
+PORT: Optional. Must be numeric"""
 	def __str__(self):
 		return self.message
