@@ -14,11 +14,14 @@ class Job:
 	command = ''
 	defaultUsername = ''
 	defaultPassword = ''
+	timeout = 20
 	servers = []
 	output = []
 
-	def __init__(self):
+	def __init__(self, timer=None):
 		self.defaultUsername = getpass.getuser()
+		if timer:
+			self.timeout = timer
 
 	def __str__(self):
 		result = f'Command: {self.command}\n\nServers:\n'
@@ -93,7 +96,7 @@ class Job:
 		with Pool(processes=len(self.servers)) as pool:
 			for n in range(len(self.servers)):
 				result = pool.apply_async(self.execOverSSH, (n,))
-				out = result.get(timeout=20)
+				out = result.get(timeout=self.timeout)
 				self.output.append({
 					'host': self.servers[n]['host'],
 					'stdout': out[0],
@@ -143,6 +146,9 @@ if __name__ == '__main__':
 							'the specified username (with or without password) to the servers where none was specified before. '
 							'Designed to use if some or all of your server accounts share the same username. '
 							'Examples: --username=admin:password, --username=johndoe '))
+	parser.add_argument('-t', '--timer',
+						type=str, metavar='', required=False,
+						help='If the default timer (20s) doesn\'t work for you, specify your own (in seconds)')
 	parser.add_argument('-v', '--verbose',
 						type=bool, nargs='?', metavar='',
 						const=True, default=False,
@@ -153,7 +159,10 @@ if __name__ == '__main__':
 						help='Run the script in debug mode (verbose fails, stacktraces on)')
 	args = parser.parse_args()
 
-	job = Job()
+	if args.timer:
+		job = Job(timer=int(args.timer))
+	else:
+		job = Job()
 	try:
 		job.setCommand(args.command)
 		if args.logpass:
@@ -172,8 +181,9 @@ if __name__ == '__main__':
 		job.run()
 	except Exception as e:
 		if args.debug:
+			print('\n\nHere\'s what went wrong:', e)
 			traceback.print_exc()
 		else:
 			print('Could not execute the script in time, most likely authentication failed on some of the servers')
-			print('Here\'s what still was gathered:')
+			print('Here\'s what still was gathered:\n')
 			print(job.getResults())
