@@ -5,9 +5,11 @@ import subprocess
 from multiprocessing import Process, Pool
 from pexpect import pxssh
 import pty
+import paramiko
 import argparse
 import getpass
 import traceback
+import time
 from exceptions import *
 
 class Job:
@@ -15,6 +17,7 @@ class Job:
 	defaultUsername = ''
 	defaultPassword = ''
 	servers = []
+	output = []
 
 	def __init__(self):
 		self.defaultUsername = getpass.getuser()
@@ -80,6 +83,15 @@ class Job:
 
 			self.servers.append(server)
 
+	def getResults(self):
+		output = ''
+		for result in self.output:
+			output += f'Server at {result["host"]}:\n\n'
+			output += f'stdout:\n{result["stdout"]}\n'
+			output += f'stderr:\n{result["stderr"]}\n'
+			output += f'{"—" * 80}'
+		return output
+
 	def run(self):
 		with Pool(processes=len(self.servers)) as pool:
 			for n in range(len(self.servers)):
@@ -88,9 +100,54 @@ class Job:
 					result = pool.apply_async(self.execOverSSHPass, (n,))
 				else:
 					result = pool.apply_async(self.execOverSSHKey, (n,))
-				# print(result.get(timeout=20))
+				out = result.get(timeout=100)
+				self.output.append({
+					'host': self.servers[n]['host'],
+					'stdout': out[0],
+					'stderr': out[1]
+					})
 			pool.close()
 			pool.join()
+		print(job.getResults())
+
+	def execOverSSHPass(self, serverNumber):
+		server = self.servers[serverNumber]
+
+		ssh = paramiko.SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh.connect(
+			server['host'],
+			port=server['port'],
+			username=server['login'],
+			password=server['password']
+		)
+		stdin, stdout, stderr = ssh.exec_command(self.command)
+		result = (stdout.read().decode(), stderr.read().decode())
+		return result
+
+
+	# def execOverSSHKey(self, serverNumber):
+	# 	server = self.servers[serverNumber]
+	# 	command = [
+	# 			'ssh', '-t', '-p', f'{server["port"]}',
+	# 			f'{server["login"]}@{server["host"]}',
+	# 			# '-o', 'NumberOfPasswordPrompts=1',
+	# 			f"\'/usr/bin/{self.command}\'"
+	# 	]
+	# 	try: 
+	# 		p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+	# 		p1.wait()
+	# 		if p1.returncode != 0:
+	# 			print(p1.stdout.read())
+	# 			raise(CommandExecutionException(command, p1.stderr.read()))
+	# 		self.output.append(p1.stdout.read())
+	# 		print(self.output)
+	# 		print(self.getResults())
+	# 	except CommandExecutionException as e:
+	# 		if args.debug:
+	# 			traceback.print_exc()
+	# 		else:
+	# 			print(e)
 
 	# def execOverSSHPass(self, serverNumber):
 	# 	server = self.servers[serverNumber]
@@ -149,12 +206,6 @@ class Job:
 
 	# 	waitpid(pid)
 	# 	print(''.join(output))
-
-	def execOverSSHPass(self, serverNumber):
-		print('Servers with login-password authentication are not yet supported')
-
-	def execOverSSHKey(self, serverNumber):
-		print("in there")
 
 ###################################################################################################################################
 
