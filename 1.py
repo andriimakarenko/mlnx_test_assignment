@@ -52,8 +52,13 @@ def createFileViaDD(inputSrc, size, dest, nbr):
 	command = ['dd', f'if={inputSrc}', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
 	# Uncomment next line for debug mode
 	# command = ['sleep', '10']
-	p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	p1.wait()
+	try: 
+		p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+		p1.wait()
+		if p1.stderr:
+			raise(CommandExecutionException(command, p1.stderr.read()))
+	except CommandExecutionException as e:
+		print(e)
 
 def findMntPoint(dfout, x):
 	goodArr = []

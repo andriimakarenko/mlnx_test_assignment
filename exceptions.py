@@ -17,10 +17,11 @@ Try setting a smaller minimum required free space. """
 
 # Turns out, subpocess.run handles such exception on its own, so this exception is unneeded for now
 class CommandExecutionException(Exception):
-	def __init__(self, command):
+	def __init__(self, command, stderr):
 		self.message = ('Could not execute the following command:\n'
-		f'\'{command}\'\n'
-		'You are probably running this script on a non POSIX-compliant OS (like, maybe, MS Windows)\n'
-		'That is not da wae')
+		f'{" ".join(command)}\n'
+		'Verify that you have enough rights for it and that your OS is POSIX-compliant (i.e. not Windows)\n'
+		'The error that the command failed with, was:\n'
+		f'{stderr}')
 	def __str__(self):
 		return self.message
