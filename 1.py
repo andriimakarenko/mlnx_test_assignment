@@ -2,7 +2,7 @@
 
 from os import *
 import subprocess
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 import argparse
 import time
 from exceptions import *
@@ -26,20 +26,30 @@ def createAndFill(minFreeSpace, fileSize, fileAmount):
 		raise(CommandExecutionException('df -l -BM'))
 	goodMntPoint = findMntPoint(p1.stdout, minFreeSpace)
 
-	processes = []
-	for n in range(fileAmount):
-		p = Process(target=createFileViaDD, args=(fileSize, goodMntPoint, n))
-		p.start()
-		processes.append(p)
+	# processes = []
+	# for n in range(fileAmount):
+	# 	p = Process(target=createFileViaDD, args=(fileSize, goodMntPoint, n))
+	# 	p.start()
+	# 	processes.append(p)
 
-	for process in processes:
-		process.join()
+	# for process in processes:
+	# 	process.join()
+
+	# The above solution works too. The below is, IMHO, more elegant.
+	# concurrent.futures.ProcessPoolExecutor() could be even more elegant...
+	# ... but on some machines it causes sub 2 second processes take 
+	# up to 3 times as long to execute, and that's a big NOPE from me.
+	with Pool(processes=fileAmount) as pool:
+		for n in range(fileAmount):
+			result = pool.apply_async(createFileViaDD, (fileSize, goodMntPoint, n))
+		pool.close()
+		pool.join()
 
 
 def createFileViaDD(size, dest, nbr):
 	command = ['dd', 'if=/dev/zero', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
 	# Uncomment next line for debug mode
-	command = ['sleep', '10']
+	# command = ['sleep', '10']
 	p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	p1.wait()
 
