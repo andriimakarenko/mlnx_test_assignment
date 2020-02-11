@@ -16,19 +16,19 @@ def stopwatch(func):
 	return inner
 
 @stopwatch
-def createAndFill(x, y, z):
+def createAndFill(minFreeSpace, fileSize, fileAmount):
 
-	if z * y > x:
+	if fileAmount * fileSize > minFreeSpace:
 		raise(DangerousArgsCombinationException)
 
 	p1 = subprocess.run(['df', '-l', '-BM'], capture_output=True, text=True)
 	if p1.stderr != "":
 		raise(CommandExecutionException('df -l -BM'))
-	goodMntPoint = findMntPoint(p1.stdout, x)
+	goodMntPoint = findMntPoint(p1.stdout, minFreeSpace)
 
 	processes = []
-	for n in range(z):
-		p = Process(target=createFileViaDD, args=(y, goodMntPoint, n))
+	for n in range(fileAmount):
+		p = Process(target=createFileViaDD, args=(fileSize, goodMntPoint, n))
 		p.start()
 		processes.append(p)
 
