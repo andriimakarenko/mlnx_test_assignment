@@ -55,7 +55,7 @@ def createFileViaDD(inputSrc, size, dest, nbr):
 	try: 
 		p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 		p1.wait()
-		if p1.stderr:
+		if p1.returncode != 0:
 			raise(CommandExecutionException(command, p1.stderr.read()))
 	except CommandExecutionException as e:
 		print(e)
