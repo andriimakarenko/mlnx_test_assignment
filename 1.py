@@ -4,17 +4,18 @@ from os import *
 import subprocess
 from multiprocessing import Process
 import argparse
-from time import time
+import time
 from exceptions import *
 
-# I would separate this in multiple functions if it wasn't for the deadline
 def createAndFill(x, y, z):
+	startTime = time.perf_counter()
+
 	if z * y > x:
 		raise(DangerousArgsCombinationException)
 
 	p1 = subprocess.run(['df', '-l', '-BM'], capture_output=True, text=True)
-	if p1.returncode != 0:
-		raise(Exception("Couldn't complete 'df -l -BM'"))
+	if p1.stderr != "":
+		raise(CommandExecutionException('df -l -BM'))
 
 	goodArr = [] # now this is just ungodly
 	goodMntPoint = "" # but I lack time to clean array properly in-place
@@ -34,25 +35,31 @@ def createAndFill(x, y, z):
 	if goodMntPoint == "":
 		raise(InsufficientFreeSpaceException)
 
-	while z > 0:
-		p = Process(target=createFileViaDD, args=(y, goodMntPoint, z))
+	processes = []
+	for n in range(z):
+		p = Process(target=createFileViaDD, args=(y, goodMntPoint, n))
 		p.start()
-		z -= 1
+		processes.append(p)
+
+	for process in processes:
+		process.join()
+
+	endTime = time.perf_counter()
+	print(f'The entire process took {round(endTime - startTime, 2)} second(s).')
+
 
 def createFileViaDD(size, dest, nbr):
-	command = f"dd if=/dev/zero of={dest}{str(nbr)}.dat count={str(size)} bs=1024"
-	# Comment out next line to go out of debug mode
-	command = "sleep 10"
-	print(command)
-	p1 = subprocess.run(command, capture_output=True, shell=True)
-	# while p1.poll() is None:
-	# 	continue
+	command = ['dd', 'if=/dev/zero', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
+	# Uncomment next line for debug mode
+	command = ['sleep', '10']
+	p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	p1.wait()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Creates FILEAMOUNT files of FILESIZE megabytes each on the first mounted local partition that has at least MINSPACE megabytes of free space')
 	parser.add_argument('-s', '--minspace',
 						type=int, metavar='', required=True,
-						help='Minimum free space required on a target partition')
+						help='Minimum free space required on a target partition in Megabytes')
 	parser.add_argument('-S', '--filesize',
 						type=int, metavar='', required=True,
 						help='Size of each file to be created')
