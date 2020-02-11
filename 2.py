@@ -42,7 +42,7 @@ class Job:
 			raise(InvalidCredentialsFormatException)
 
 	def setServers(self, serversStr):
-		serverStrArr = serversStr.split(',')
+		serverStrArr = serversStr.replace(" ", "").split(',')
 		
 		# There definitely is a library that does exactly this validation
 		# But I want to demonstrate I can write it from scratch if needed
@@ -93,12 +93,12 @@ class Job:
 		with Pool(processes=len(self.servers)) as pool:
 			for n in range(len(self.servers)):
 				result = pool.apply_async(self.execOverSSH, (n,))
-				out = result.get(timeout=100)
+				out = result.get(timeout=20)
 				self.output.append({
 					'host': self.servers[n]['host'],
 					'stdout': out[0],
 					'stderr': out[1]
-					})
+				})
 			pool.close()
 			pool.join()
 		print(job.getResults())
@@ -108,12 +108,17 @@ class Job:
 
 		ssh = paramiko.SSHClient()
 		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		ssh.connect(
-			server['host'],
-			port = server['port'],
-			username = server['login'],
-			password = server['password'] if server['password'] else None
-		)
+		try:
+			ssh.connect(
+				server['host'],
+				port = server['port'],
+				username = server['login'],
+				password = server['password'] if server['password'] else None
+			)
+		except paramiko.ssh_exception.AuthenticationException as e:
+			print(f"Failed to authorize as {server['login']} on {server['host']}:{server['port']}")
+		except Exception as e:
+			print(e)
 		stdin, stdout, stderr = ssh.exec_command(self.command)
 		result = (stdout.read().decode(), stderr.read().decode())
 		return result
@@ -155,7 +160,7 @@ if __name__ == '__main__':
 			job.setDefaultCredentials(args.logpass)
 		job.setServers(args.servers)
 		if args.verbose:
-			print('Parsed following servers:')
+			print('Parsed following input:')
 			print(job)
 	except Exception as e:
 		if args.debug:
@@ -169,4 +174,6 @@ if __name__ == '__main__':
 		if args.debug:
 			traceback.print_exc()
 		else:
-			print('Could not execute the job. Here\'s why:', e)
+			print('Could not execute the script in time, most likely authentication failed on some of the servers')
+			print('Here\'s what still was gathered:')
+			print(job.getResults())
