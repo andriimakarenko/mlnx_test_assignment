@@ -8,15 +8,15 @@ import time
 from exceptions import *
 
 def stopwatch(func):
-	def inner(x, y, z):
+	def inner(*args):
 		startTime = time.perf_counter()
-		func(x, y, z)
+		func(*args)
 		endTime = time.perf_counter()
 		print(f'The entire process took {round(endTime - startTime, 2)} second(s).')
 	return inner
 
 @stopwatch
-def createAndFill(minFreeSpace, fileSize, fileAmount):
+def createAndFill(minFreeSpace, fileSize, fileAmount, randomSrc):
 
 	if fileAmount * fileSize > minFreeSpace:
 		raise(DangerousArgsCombinationException)
@@ -25,6 +25,8 @@ def createAndFill(minFreeSpace, fileSize, fileAmount):
 	if p1.stderr != "":
 		raise(CommandExecutionException('df -l -BM'))
 	goodMntPoint = findMntPoint(p1.stdout, minFreeSpace)
+
+	inputSrc = '/dev/urandom' if randomSrc else '/dev/zero'
 
 	# processes = []
 	# for n in range(fileAmount):
@@ -41,13 +43,13 @@ def createAndFill(minFreeSpace, fileSize, fileAmount):
 	# up to 3 times as long to execute, and that's a big NOPE from me.
 	with Pool(processes=fileAmount) as pool:
 		for n in range(fileAmount):
-			result = pool.apply_async(createFileViaDD, (fileSize, goodMntPoint, n))
+			result = pool.apply_async(createFileViaDD, (inputSrc, fileSize, goodMntPoint, n))
 		pool.close()
 		pool.join()
 
 
-def createFileViaDD(size, dest, nbr):
-	command = ['dd', 'if=/dev/zero', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
+def createFileViaDD(inputSrc, size, dest, nbr):
+	command = ['dd', f'if={inputSrc}', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
 	# Uncomment next line for debug mode
 	# command = ['sleep', '10']
 	p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -82,9 +84,13 @@ if __name__ == '__main__':
 	parser.add_argument('-a', '--fileamount',
 						type=int, metavar='', required=True,
 						help='Amount of files to create')
+	parser.add_argument('-r', '--random',
+						type=bool, nargs='?',
+						const=True, default=False,
+						help='Use random data rather then zeros')
 	args = parser.parse_args()
 
 	try:
-		createAndFill(args.minspace, args.filesize, args.fileamount)
+		createAndFill(args.minspace, args.filesize, args.fileamount, args.random)
 	except Exception as e:
 		print("Couldn't complete the task: ", e)
