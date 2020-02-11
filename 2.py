@@ -138,6 +138,10 @@ if __name__ == '__main__':
 							'the specified username (with or without password) to the servers where none was specified before. '
 							'Designed to use if some or all of your server accounts share the same username. '
 							'Examples: --username=admin:password, --username=johndoe '))
+	parser.add_argument('-v', '--verbose',
+						type=bool, nargs='?', metavar='',
+						const=True, default=False,
+						help='Run the script in verbose mode (More information about each stage)')
 	parser.add_argument('-d', '--debug',
 						type=bool, nargs='?', metavar='',
 						const=True, default=False,
@@ -150,7 +154,9 @@ if __name__ == '__main__':
 		if args.logpass:
 			job.setDefaultCredentials(args.logpass)
 		job.setServers(args.servers)
-		# print(job)
+		if args.verbose:
+			print('Parsed following servers:')
+			print(job)
 	except Exception as e:
 		if args.debug:
 			traceback.print_exc()
