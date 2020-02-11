@@ -16,24 +16,7 @@ def createAndFill(x, y, z):
 	p1 = subprocess.run(['df', '-l', '-BM'], capture_output=True, text=True)
 	if p1.stderr != "":
 		raise(CommandExecutionException('df -l -BM'))
-
-	goodArr = [] # now this is just ungodly
-	goodMntPoint = "" # but I lack time to clean array properly in-place
-	linesArr = p1.stdout.split("\n")
-	linesArr = linesArr[1:] # remove column names
-	for line in linesArr:
-		if line[:5] == "/dev/":
-			goodArr.append(line)
-
-	for line in goodArr:
-		stats = line.split()
-		mntPoint = stats[-1]
-		freeSpace = int(stats[-3][:-1])
-		if freeSpace > x:
-			goodMntPoint = mntPoint
-			break
-	if goodMntPoint == "":
-		raise(InsufficientFreeSpaceException)
+	goodMntPoint = findMntPoint(p1.stdout, x)
 
 	processes = []
 	for n in range(z):
@@ -51,9 +34,27 @@ def createAndFill(x, y, z):
 def createFileViaDD(size, dest, nbr):
 	command = ['dd', 'if=/dev/zero', f'of={dest}{str(nbr)}.dat', f'count={str(size)}', 'bs=1024']
 	# Uncomment next line for debug mode
-	command = ['sleep', '10']
+	# command = ['sleep', '10']
 	p1 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	p1.wait()
+
+def findMntPoint(dfout, x):
+	goodArr = []
+	goodMntPoint = ""
+	linesArr = dfout.split("\n")
+	linesArr = linesArr[1:] # remove column names
+	for line in linesArr:
+		if line[:5] == "/dev/":
+			goodArr.append(line)
+
+	for line in goodArr:
+		stats = line.split()
+		mntPoint = stats[-1]
+		freeSpace = int(stats[-3][:-1])
+		if freeSpace > x:
+			return mntPoint
+	
+	raise(InsufficientFreeSpaceException)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Creates FILEAMOUNT files of FILESIZE megabytes each on the first mounted local partition that has at least MINSPACE megabytes of free space')
