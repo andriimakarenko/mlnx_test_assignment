@@ -3,13 +3,11 @@
 from os import *
 import subprocess
 from multiprocessing import Process, Pool
-from pexpect import pxssh
 import pty
 import paramiko
 import argparse
 import getpass
 import traceback
-import time
 from exceptions import *
 
 class Job:
@@ -21,7 +19,6 @@ class Job:
 
 	def __init__(self):
 		self.defaultUsername = getpass.getuser()
-		# print(f'Default username set to {self.defaultUsername}')
 
 	def __str__(self):
 		result = f'Command: {self.command}\n\nServers:\n'
@@ -89,17 +86,13 @@ class Job:
 			output += f'Server at {result["host"]}:\n\n'
 			output += f'stdout:\n{result["stdout"]}\n'
 			output += f'stderr:\n{result["stderr"]}\n'
-			output += f'{"—" * 80}'
+			output += f'{"—" * 80}\n\n'
 		return output
 
 	def run(self):
 		with Pool(processes=len(self.servers)) as pool:
 			for n in range(len(self.servers)):
-				# print(f'In server #{n}')
-				if self.servers[n]['password']:
-					result = pool.apply_async(self.execOverSSHPass, (n,))
-				else:
-					result = pool.apply_async(self.execOverSSHKey, (n,))
+				result = pool.apply_async(self.execOverSSH, (n,))
 				out = result.get(timeout=100)
 				self.output.append({
 					'host': self.servers[n]['host'],
@@ -110,20 +103,22 @@ class Job:
 			pool.join()
 		print(job.getResults())
 
-	def execOverSSHPass(self, serverNumber):
+	def execOverSSH(self, serverNumber):
 		server = self.servers[serverNumber]
 
 		ssh = paramiko.SSHClient()
 		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 		ssh.connect(
 			server['host'],
-			port=server['port'],
-			username=server['login'],
-			password=server['password']
+			port = server['port'],
+			username = server['login'],
+			password = server['password'] if server['password'] else None
 		)
 		stdin, stdout, stderr = ssh.exec_command(self.command)
 		result = (stdout.read().decode(), stderr.read().decode())
 		return result
+
+	
 
 
 	# def execOverSSHKey(self, serverNumber):
@@ -252,4 +247,4 @@ if __name__ == '__main__':
 		if args.debug:
 			traceback.print_exc()
 		else:
-			print('Could not set up the job. Here\'s why:', e)
+			print('Could not execute the job. Here\'s why:', e)
