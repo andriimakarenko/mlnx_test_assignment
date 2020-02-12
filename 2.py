@@ -120,9 +120,17 @@ class Job:
 			)
 		except paramiko.ssh_exception.AuthenticationException as e:
 			print(f"Failed to authorize as {server['login']} on {server['host']}:{server['port']}")
-		except Exception as e:
+		except Exception as e: # Idk what else can happen here, other than auth fail, but let's catch it
 			print(e)
-		stdin, stdout, stderr = ssh.exec_command(self.command)
+
+		try:
+			stdin, stdout, stderr = ssh.exec_command(self.command)
+			if stdout.channel.recv_exit_status() != 0:
+				raise(RemoteExecutionException(host=server['host']))
+		except RemoteExecutionException as e:
+			print(e)
+			print(f'\n{"—" * 80}\n')
+
 		result = (stdout.read().decode(), stderr.read().decode())
 		return result
 

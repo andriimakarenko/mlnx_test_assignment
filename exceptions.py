@@ -61,3 +61,11 @@ HOST: Obligatory. If there are no delimiters in the server target, everything pr
 PORT: Optional. Must be numeric"""
 	def __str__(self):
 		return self.message
+
+class RemoteExecutionException(Exception):
+	def __init__(self, host):
+		self.message = f"""
+Connection to the server at {host} was successful, but your command failed to execute on it.
+Please check spelling of the command. If the spelling is correct, consult the stderr from that server for details"""
+	def __str__(self):
+		return self.message
